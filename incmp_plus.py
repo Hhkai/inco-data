@@ -223,10 +223,12 @@ class Our_withtree2:
     # in "withtree1", the complete data do not have the 
     # 'my ada' process
     # consider the process in another way, we get 'withtree2'
-    def __init__(self, clf, debug = False):
+    def __init__(self, clf, debug = False, select_limit = -1, beta = 1.0):
         # string
         self.clf = clf
         self.debug = debug
+        self.select_limit = select_limit
+        self.beta = beta
 
     def fit(self, trainX, trainY):
         self.trainX = trainX
@@ -286,7 +288,7 @@ class Our_withtree2:
                     break
             if allSame == True:
                 continue
-            kaka = Ada_vote2(self, i)
+            kaka = Ada_vote2(self, i, select_limit = self.select_limit, beta = self.beta)
             kaka.train_go()
             ada_votes[i] = kaka
         #
@@ -309,11 +311,13 @@ class Our_withtree2:
                 res.append(cur_res)
         return res
 class Ada_vote2:
-    def __init__(self, tree, miss):
+    def __init__(self, tree, miss, select_limit = -1, beta = 1.0):
         self.clf = tree.clf
         self.tree = tree
         self.miss = miss
         self.debug = self.tree.debug
+        self.select_limit = select_limit
+        self.beta = beta
         # mk miss list
         S = set(range(tree.col_n))
         left_miss_f_set = S - set(miss)
@@ -333,7 +337,7 @@ class Ada_vote2:
         # print "raw miss", miss
         self.raw_miss = miss
         sets_consider = []
-        for i in a:
+        for i in a[:select_limit]:
             listx = list(set(miss).union(set(i)))
             # print listx
             sets_consider.append(tuple(listx))
@@ -400,9 +404,9 @@ class Ada_vote2:
         #
         for ind, i in enumerate(ansY):
             if i != trainY[ind]:
-                self.sample_wi[ind] *= np.exp(alpha_m)
+                self.sample_wi[ind] *= np.exp(self.beta * alpha_m)
             else:
-                self.sample_wi[ind] *= np.exp(-alpha_m)
+                self.sample_wi[ind] *= np.exp(- self.beta * alpha_m)
         self.sample_wi = self.sample_wi[:self.sample_n]
         self.sample_wi = hhkutil.normaled(self.sample_wi, sum_x = 1 * self.sample_n)
     def train_go(self):
@@ -414,9 +418,10 @@ class Ada_vote2:
         self.sample_wi = [1.0 / self.sample_n] * self.sample_n
         self.selected_id = copy.deepcopy(self.raw_selected_id)
         self.train(self.raw_miss)
+        
         for i in self.miss_list:
-            if self.stop > 2:
-                break
+            #if self.stop > 7:
+            #    break
             if self.tree.CDS_tree.has_key(i) == False:
                 continue
             if len(i) == self.tree.col_n:

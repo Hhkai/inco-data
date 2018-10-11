@@ -110,8 +110,11 @@ def normaled(x, sum_x = 1.0, debug = 0):
             tot += x[i]
         if tot <= 0.001 and tot >= -0.001:
             print "normaled warning"
+            num = len(x)
+            y = dict()
             for i in x:
-                print i, x[i]
+                y[i] = 1.0 / num if x[i] > 0 else -1.0 / num
+            return y
         assert tot > 0.001 or tot < -0.001, tot
         y = dict()
         for i in x:

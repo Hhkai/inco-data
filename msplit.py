@@ -1,17 +1,25 @@
 import random
 
 class Msplit:
-	def __init__(self, split_n = 0.3):
+	def __init__(self, split_n = 0.3, miss_rate = 0.3, sample_rate = 1.0, feature_rate = 1.0):
 		self.split_n = split_n # the ratio of test sample
 		self.dataX = dict()
 		self.dataY = dict()
+		self.miss_rate = miss_rate
+		self.sample_rate = sample_rate
+		self.feature_rate = feature_rate
 	def rdfile(self, fileName, fileAtt):
 		fr = open(fileName,'r')
 		testX = []
 		lable = []
 		lines = fr.readlines()
 		# print fileName
-		for line in lines:
+		rows = range(len(lines))
+		if self.sample_rate < 1.0:
+			rows = random.sample(rows, int(len(lines) * self.sample_rate))
+		for ind, line in enumerate(lines):
+			if ind not in rows:
+				continue
 			lineNew = line.strip().split(',')
 			for i in xrange(len(lineNew)):
 				try:
@@ -21,10 +29,16 @@ class Msplit:
 			testX.append(lineNew[:-1])
 			lable.append(int(lineNew[-1]))
 		fr.close()
+		if self.miss_rate > 0: # make more missing
+			total = len(testX) * len(testX[0])
+			miss = random.sample(range(total), int(total * self.miss_rate))
+			for i in miss:
+				testX[i / len(testX[0])][i % len(testX[0])] = '?'
 		self.dataX[fileAtt] = testX
 		self.dataY[fileAtt] = lable
 		if fileAtt == 0:
 			self.rdsample(lable)
+		print "read end , row = ", len(testX)
 	def rdsample(self, dataY):
 		dict_y = dict()
 		for ind, y in enumerate(dataY):
